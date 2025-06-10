@@ -1,29 +1,23 @@
-# 1. Base image with Corepack for pnpm
+# 1. Start from Node 18 on Alpine
 FROM node:18-alpine
 
 WORKDIR /app
 
-# 2. Enable Corepack & pin pnpm to the version in your package.json
-RUN corepack enable \
- && corepack prepare pnpm@8.8.1 --activate
-
-# 3. Copy manifests & install deps
+# 2. Copy only what we need for install
 COPY package.json pnpm-lock.yaml tsconfig.json tsup.config.ts ./
-RUN pnpm install --frozen-lockfile
 
-# 4. Copy all source code
+# 3. Install pnpm globally via npm, then install deps
+RUN npm install -g pnpm@8.8.1 \
+ && pnpm install --frozen-lockfile
+
+# 4. Copy the rest of your code
 COPY src ./src
 
-# 5. (Optional) If you created a server wrapper, copy it too:
-#    e.g. src/server.ts → dist/server.js after build
-# COPY server.ts ./
-
-# 6. Build everything
+# 5. Build the library (and your server wrapper)
 RUN pnpm run build
 
-# 7. Expose your API port
+# 6. Expose the port your server will listen on
 EXPOSE 4000
 
-# 8. Start the server entrypoint
-#    Assumes you added src/server.ts and it compiles to dist/server.js
+# 7. Run the compiled server
 CMD ["node", "dist/server.js"]
